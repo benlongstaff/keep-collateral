@@ -5,6 +5,7 @@ const BondedECDSAKeepFactory = require("@keep-network/keep-ecdsa/artifacts/Bonde
 const DepositLog = require("@keep-network/tbtc/artifacts/DepositLog.json");
 const TBTCSystem = require("@keep-network/tbtc/artifacts/TBTCSystem.json");
 const Deposit = require("@keep-network/tbtc/artifacts/Deposit.json");
+require("dotenv").config();
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -12,7 +13,7 @@ function sleep(ms) {
 
 class Extractor {
   constructor() {
-    this.fileCacheName = "data/keeps.json";
+    this.fileCacheName = `data/${process.env.INFURA_NETWORK}/keeps.json`;
     this.keepsFileCache = fs.existsSync(this.fileCacheName)
       ? JSON.parse(fs.readFileSync(this.fileCacheName))
       : {};
@@ -38,14 +39,24 @@ class Extractor {
 
     this.finalStates = ["FAILED_SETUP", "REDEEMED", "LIQUIDATED"];
 
+    let ecdsaContractAddress =
+      process.env.INFURA_NETWORK === "mainnet"
+        ? BondedECDSAKeepFactory.networks["1"].address
+        : process.env.ROPSTEN_ECDSA_CONTRACT_ADDRESS;
+
     this.ecdsaKFContract = new ethers.Contract(
-      BondedECDSAKeepFactory.networks["1"].address,
+      ecdsaContractAddress,
       BondedECDSAKeepFactory.abi,
       this.ip
     );
 
+    let depositContractAddress =
+      process.env.INFURA_NETWORK === "mainnet"
+        ? TBTCSystem.networks["1"].address
+        : process.env.ROPSTEN_TBTC_SYSTEM_CONTRACT_ADDRESS;
+
     this.depositLogContract = new ethers.Contract(
-      TBTCSystem.networks["1"].address,
+      depositContractAddress,
       DepositLog.abi,
       this.ip
     );
@@ -162,7 +173,8 @@ class Extractor {
       await this.updateKeepState(address, 0);
       console.log(
         "\x1b[42m%s\x1b[0m\t",
-        `${this.keepsFileCache[address].state}`,`with ${this.keepsFileCache[address].collateralization}% collateralization`
+        `${this.keepsFileCache[address].state}`,
+        `with ${this.keepsFileCache[address].collateralization}% collateralization`
       );
     }
   }
@@ -200,7 +212,8 @@ class Extractor {
       });
       console.log(
         "\x1b[32m%s\x1b[0m",
-        `[LIVE]\t`,`updated ${address} state in keeps cache\t`
+        `[LIVE]\t`,
+        `updated ${address} state in keeps cache\t`
       );
     } catch (err) {
       console.error(

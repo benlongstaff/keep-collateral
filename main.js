@@ -1,11 +1,11 @@
 const fs = require("fs");
-const ethers = require("ethers");
+
 require("dotenv").config();
 
 let KeepsExtractor = require("./extractors/keeps.js").Extractor;
 
 async function main() {
-  let operators = process.env.OPERATOR.replace(/\s/g, "").split(",");
+  let operators = process.env.OPERATORS.replace(/\s/g, "").split(",");
   console.log(
     `==================================================================================`
   );
