@@ -1,35 +1,75 @@
-const fs = require("fs"); // file system
+const fs = require("fs");
 const ethers = require("ethers");
+require("dotenv").config();
 
 let KeepsExtractor = require("./extractors/keeps.js").Extractor;
 
 async function main() {
-  let operator = process.env.OPERATOR;
-  let lastBlock = 11276900; //11024463;
-  let watchlist = JSON.parse(fs.readFileSync("data/watchlist.json"));
-  let extractor = new KeepsExtractor(watchlist);
-  let keeps = await extractor.fetchKeeps(lastBlock);
+  let operators = process.env.OPERATOR.replace(/\s/g, "").split(",");
+  console.log(
+    `==================================================================================`
+  );
+  console.log(
+    "\x1b[36m%s\x1b[0m",
+    "[INFO]\t",
+    `Configured for operators:\t${operators}`
+  );
+  console.log(
+    "\x1b[36m%s\x1b[0m",
+    "[INFO]\t",
+    `Infura Network:\t\t${process.env.INFURA_NETWORK}`
+  );
+  console.log(
+    "\x1b[36m%s\x1b[0m",
+    "[INFO]\t",
+    `Infura Project ID:\t\t${process.env.INFURA_PROJECT_ID}`
+  );
+  console.log(
+    `==================================================================================`
+  );
+  let start = Date.now();
+  let extractor = new KeepsExtractor();
+  let minBlock = extractor.getMinBlock();
+  console.log(
+    "\x1b[36m%s\x1b[0m",
+    "[INFO]\t",
+    `Loading keeps from block ${minBlock}`
+  );
 
-  console.log(`[FOUND] ${Object.keys(keeps).length}`)
-  for (var address in keeps) {
-    if (keeps[address].signers.includes(operator) && keeps[address].state === "ACTIVE") {
-      console.log(`MATCH ${operator} on ${address} at ${keeps[address].block}`)
-      // if we found a new keep to watch
-      if (watchlist.includes(address)) {
-        watchlist.push(address)
-      }
-    }
-  }
-  var data = JSON.stringify(watchlist);
-  fs.writeFile("data/watchlist.json", data, function(err) {
-    if (err) {
-      console.log(err);
-    }
-  });
-  // let depositExtractor = new DepositExtractor();
-  // let deposits = await depositExtractor.fetch(events)
-  // //console.log(events)
+  // STEP 1: check for new keeps
+  await extractor.fetchNewKeeps(minBlock);
+  let u1 = Date.now();
+  console.log(
+    "\x1b[36m%s\x1b[0m",
+    "[INFO]\t",
+    `fetching new keeps took ${(u1 - start) / 1000} seconds`
+  );
 
+  // STEP 2: get watchlist
+  let watchlist = extractor.getWatchlist(operators);
+  console.log(
+    "\x1b[36m%s\x1b[0m",
+    "[INFO]\t",
+    `Added ${watchlist.length} items to the watchlist`
+  );
+
+  // STEP 3: check watchlist
+  await extractor.updateWatchlistStates(watchlist);
+  let u2 = Date.now();
+  console.log(
+    "\x1b[36m%s\x1b[0m",
+    "[INFO]\t",
+    `updating watchlist took ${(u2 - u1) / 1000} seconds`
+  );
+
+  // STEP 4: process keeps
+  let end = Date.now();
+  console.log(
+    "\x1b[36m%s\x1b[0m",
+    "[INFO]\t",
+    `ran for ${(end - start) / 1000} seconds`
+  );
+  return;
 }
 
 main().catch(err => {
