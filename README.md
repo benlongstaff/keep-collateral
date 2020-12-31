@@ -1,5 +1,7 @@
 # Keep Collateral
 
+Changes summary [outlined here](./docs/changes.md).
+
 This bot is designed to help operators manage the [courtesy call](https://docs.keep.network/tbtc/#pre-liquidation) events when their keeps become under collateralized.
 
 This code might be run by
@@ -11,22 +13,29 @@ The TBTC economic security model requires 150% collateralisation with ETH for th
 
 The 6 hour window from courtesy call to liquidation makes the active management of the node problematic due to the fluctuations in the BTC / ETH ratio.
 
-## Hackathon Summary
+## Quickstart
 
-### Achieved
+```
+npm install
+```
 
-- Pulling Keeps states in a request efficient manner.
-- Code to create testnet BTC addresses to test with.
+Start a local fork of mainnet
 
-### Blockers
+```
+npx hardhat node --fork https://eth-mainnet.alchemyapi.io/v2/<YOUR_ALCHEMY_API_KEY>
+```
 
-- Signers on Ropsten where unresponsive when using the dapp to mint TBTC.
-- Forking mainnet locally with Hardhat
+Populate our wallet with TBTC and ETH by impersonating an account on the local fork
 
-### Next Steps
+```
+npx hardhat accounts --network localhost
+```
 
-- Add redemption code as [outlined here](./docs/next.md).
-- Write tests that verify correctness.
+Run the code
+
+```
+node --experimental-modules --experimental-json-modules main.mjs
+```
 
 ## 1. Design Challenges
 
@@ -127,7 +136,27 @@ MINBLOCK=0
 COOLDOWN=5000
 ROPSTEN_ECDSA_CONTRACT_ADDRESS=0x9EcCf03dFBDa6A5E50d7aBA14e0c60c2F6c575E6
 ROPSTEN_TBTC_SYSTEM_CONTRACT_ADDRESS=0xc3f96306eDabACEa249D2D22Ec65697f38c6Da69
-ALCHEMY_API=https://eth-mainnet.alchemyapi.io/v2/YOUR_ALCHEMY_API_KEY
+ROPSTEN_TBTC_TOKEN_CONTRACT_ADDRESS=0x7c07C42973047223F80C4A69Bb62D5195460Eb5F
+HARDHAT_IMPERSONATE_WALLET=0xf9e11762d522ea29dd78178c9baf83b7b093aacc
+HARDHAT_BLOCK=11469780
+HARDHAT_URL=https://eth-mainnet.alchemyapi.io/v2/YOUR_ALCHEMY_API_KEY
+HARDHAT_CHAIN_ID=1
+ETH_WALLET_PUBLIC_KEY=YOUR_ETH_WALLET_PUBLIC_KEY
+ETH_WALLET_PRIVATE_KEY=YOUR_ETH_WALLET_PRIVATE_KEY
+BTC_NETWORK=main
+BTC_ELECTRUM_SERVER=electrumx-server.tbtc.network
+BTC_ELECTRUM_PORT=8443
+BTC_ELECTRUM_PROTOCOL=wss
+BTC_WALLET_PUBLIC_KEY=YOUR_BTC_PUBLIC_KEY_TO_RECEIVE_REDEMPTIONS
+TBTCJS_NETWORK_CHECK=false
+COLLATERALISATION_THRESHOLD=130
+```
+
+Electrum settings for testnet
+
+```
+BTC_NETWORK=testnet
+BTC_ELECTRUM_SERVER=electrumx-server.test.tbtc.network
 ```
 
 For local development run a forked mainnet node. Create hardhat.config.js file in the root directory with
@@ -177,7 +206,7 @@ looked at using the CourtesyCalled events. this doesnt allow preemptive liquidat
 Running node v14.12.0
 
 ```
-node main.js
+node --experimental-json-modules main.js <WALLET-PASSWORD>
 ```
 
 ## 5. Tests

@@ -1,11 +1,12 @@
-const fs = require("fs");
+import fs from "fs";
+import dotenv from "dotenv"
+import KeepsExtractor from "./extractors/keeps.mjs";
+import KeepsRedeemer from "./redeemers/keeps.mjs";
 
-require("dotenv").config();
+dotenv.config()
+// node --experimental-json-modules main.mjs test
 
-let KeepsExtractor = require("./extractors/keeps.js").Extractor;
-
-async function main() {
-  let operators = process.env.OPERATORS.replace(/\s/g, "").split(",");
+function printConfigInfo(operators, minBlock) {
   console.log(
     `==================================================================================`
   );
@@ -27,14 +28,21 @@ async function main() {
   console.log(
     `==================================================================================`
   );
-  let start = Date.now();
-  let extractor = new KeepsExtractor();
-  let minBlock = extractor.getMinBlock();
   console.log(
     "\x1b[36m%s\x1b[0m",
     "[INFO]\t",
     `Loading keeps from block ${minBlock}`
   );
+
+}
+
+async function main() {
+  let start = Date.now();
+  let operators = process.env.OPERATORS.replace(/\s/g, "").split(",");
+  let extractor = new KeepsExtractor();
+  let redeemer = new KeepsRedeemer();
+  let minBlock = extractor.getMinBlock();
+  printConfigInfo(operators, minBlock);
 
   // STEP 1: check for new keeps
   await extractor.fetchNewKeeps(minBlock);
@@ -54,7 +62,7 @@ async function main() {
   );
 
   // STEP 3: check watchlist
-  await extractor.updateWatchlistStates(watchlist);
+  watchlist = await extractor.updateWatchlistStates(watchlist);
   let u2 = Date.now();
   console.log(
     "\x1b[36m%s\x1b[0m",
@@ -63,13 +71,13 @@ async function main() {
   );
 
   // STEP 4: process keeps
+  await redeemer.processWatchlist(watchlist);
   let end = Date.now();
   console.log(
     "\x1b[36m%s\x1b[0m",
     "[INFO]\t",
     `ran for ${(end - start) / 1000} seconds`
   );
-  return;
 }
 
 main().catch(err => {

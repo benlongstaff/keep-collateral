@@ -1,18 +1,19 @@
-const fs = require("fs"); // file system
-const ethers = require("ethers");
-const BondedECDSAKeep = require("@keep-network/keep-ecdsa/artifacts/BondedECDSAKeep.json");
-const BondedECDSAKeepFactory = require("@keep-network/keep-ecdsa/artifacts/BondedECDSAKeepFactory.json");
-const DepositLog = require("@keep-network/tbtc/artifacts/DepositLog.json");
-const TBTCSystem = require("@keep-network/tbtc/artifacts/TBTCSystem.json");
-const Deposit = require("@keep-network/tbtc/artifacts/Deposit.json");
-require("dotenv").config();
+import fs from "fs";
+import ethers from "ethers";
+import BondedECDSAKeep from "@keep-network/keep-ecdsa/artifacts/BondedECDSAKeep.json";
+import BondedECDSAKeepFactory from "@keep-network/keep-ecdsa/artifacts/BondedECDSAKeepFactory.json";
+import DepositLog from "@keep-network/tbtc/artifacts/DepositLog.json";
+import TBTCSystem from "@keep-network/tbtc/artifacts/TBTCSystem.json";
+import Deposit from "@keep-network/tbtc/artifacts/Deposit.json";
+import dotenv from "dotenv";
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+export default class Extractor {
+  sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
 
-class Extractor {
   constructor() {
+    dotenv.config();
     this.fileCacheName = `data/${process.env.INFURA_NETWORK}/keeps.json`;
     this.keepsFileCache = fs.existsSync(this.fileCacheName)
       ? JSON.parse(fs.readFileSync(this.fileCacheName))
@@ -127,7 +128,6 @@ class Extractor {
       );
 
       const deposit = new ethers.Contract(tdt[0].args[0], Deposit.abi, this.ip);
-      //await sleep(300); // lazy way to avoid rate limiting in free infura account
 
       // create an entry with the attributes that we wont update.
       this.keepsFileCache[address] = {
@@ -163,12 +163,13 @@ class Extractor {
         `attempt ${attempts} sleeping for ${(process.env.COOLDOWN * attempts) /
           1000} seconds`
       );
-      await sleep(process.env.COOLDOWN * attempts);
+      await this.sleep(process.env.COOLDOWN * attempts);
       await this.addKeepToCache(keep, attempts);
     }
   }
 
   async updateWatchlistStates(watchlist) {
+    let retval = [];
     for (let address of watchlist) {
       await this.updateKeepState(address, 0);
       console.log(
@@ -176,7 +177,9 @@ class Extractor {
         `${this.keepsFileCache[address].state}`,
         `with ${this.keepsFileCache[address].collateralization}% collateralization`
       );
+      retval.push(this.keepsFileCache[address]);
     }
+    return retval;
   }
 
   async updateKeepState(address, attempts) {
@@ -231,12 +234,8 @@ class Extractor {
         `Attempt ${attempts} sleeping for ${(process.env.COOLDOWN * attempts) /
           1000} seconds`
       );
-      await sleep(process.env.COOLDOWN * attempts);
+      await this.sleep(process.env.COOLDOWN * attempts);
       await this.updateKeepState(address, attempts);
     }
   }
 }
-
-module.exports = {
-  Extractor: Extractor
-};
